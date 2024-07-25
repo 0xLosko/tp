@@ -24,6 +24,6 @@ async function processChallenge() {
 }
 
 // Exécution du script
-for (let i = 0; i < 40; i++) {
+for (let i = 0; i < 3000; i++) {
   processChallenge();
 }

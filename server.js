@@ -83,11 +83,17 @@ app.post('/challenge/encrypt/:address/:challengeID', async (req, res) => {
         console.log('POST /challenge/encrypt/:address/:challengeID');
         console.log('Received request body:', req.body);
 
-        const { phrase, publicKey } = req.body;
+        const { sentence, public_key } = req.body;
 
-        const encryptedPhrase = encryptWithECIES(phrase, publicKey);
+        if (!sentence || !public_key) {
+            console.error('Missing Sentence or publicKey in request body');
+            return res.status(400).json({ error: 'Sentence and publicKey are required' });
+        }
 
-        const response = await axios.post(`${serverHost}/challenge/encrypt/${req.params.address}/${req.params.challengeID}`, { encrypted: encryptedPhrase });
+        const encryptedPhrase = encryptWithRSA(sentence, public_key);
+        console.log(encryptedPhrase)
+
+        const response = await axios.post(`${serverHost}/challenge/encrypt/${req.params.address}/${req.params.challengeID}`, { Sentence: sentence, cipherText: encryptedPhrase });
         res.status(response.status).json(response.data);
     } catch (error) {
         console.error('Error in /challenge/encrypt/:address/:challengeID:', error.message);
@@ -95,8 +101,20 @@ app.post('/challenge/encrypt/:address/:challengeID', async (req, res) => {
     }
 });
 
-function encryptWithECIES(phrase, publicKey) {
-    return crypto.publicEncrypt(publicKey, Buffer.from(phrase)).toString('base64');
+function encryptWithRSA(phrase, publicKey) {
+    try {
+        const cipher = crypto.publicEncrypt(
+            {
+                key: publicKey,
+                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+            },
+            Buffer.from(phrase, 'utf8')
+        );
+        return cipher.toString('hex');
+    } catch (error) {
+        console.error('Error encrypting phrase with RSA:', error.message);
+        throw error;
+    }
 }
 
 app.listen(port, 'localhost', () => {
